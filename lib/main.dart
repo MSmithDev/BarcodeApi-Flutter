@@ -126,10 +126,6 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Column(
 
         children: [
-          Center(
-
-            child: Text('Try Me!', textScaleFactor: 2),
-          ),
 
           Center(
             child: TextField(
