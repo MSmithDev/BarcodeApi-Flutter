@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -32,6 +34,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
+
   MyHomePage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -50,6 +53,32 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
+  Future<String> _getBarcode(String code) async {
+    var response = await http.get('http://barcodeapi.org/api/A_Barcode');
+    if (response.statusCode == 200) {
+      // OK
+      //print(response.body);
+      return response.body;
+    }
+    else {
+      throw Exception('failed to fetch');
+    }
+  }
+
+//Text controllers
+  final inputController = TextEditingController();
+
+//
+
+  String codeImage = 'Try Me!';
+
+  final Widget svgLogo = Container(
+    height: 40,
+    alignment: Alignment.centerLeft,
+    margin: EdgeInsets.all(0.0),
+    child: SvgPicture.asset('res/barcodeapi-logo.svg'),
+  );
   int _counter = 0;
 
   void _incrementCounter() {
@@ -75,38 +104,84 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+        title: svgLogo,
+        centerTitle: true,
+        backgroundColor: Colors.white,
+
+        leading: Icon(
+          Icons.open_in_browser,
+          color: Colors.black,
+          size: 50.0,
         ),
+        actions: [
+          Icon(
+            Icons.camera,
+            color: Colors.black,
+            size: 50.0,
+          ),
+
+        ],
+
       ),
+      body: Column(
+
+        children: [
+          Center(
+
+            child: Text('Try Me!', textScaleFactor: 2),
+          ),
+
+          Center(
+            child: TextField(
+              decoration: InputDecoration(
+
+                  hintText: 'Try Me!'
+              ),
+              textAlign: TextAlign.center,
+              controller: inputController,
+              onChanged: (String value) async {
+                print('Value: $value');
+                if (value != '') {
+                  codeImage = value;
+                }
+                else {
+                  codeImage = 'Try Me!';
+                }
+                //codeImage = await _getBarcode(value);
+                setState(() {
+
+                });
+              },
+            ),
+          ),
+          Padding(padding: EdgeInsets.all(20),),
+          Center(
+
+            child: Image.network('http://barcodeapi.org/api/$codeImage'),
+            // child: FutureBuilder<String>(
+            //   future: _getBarcode(),
+            //   builder: (BuildContext context, AsyncSnapshot<String> snapshot){
+            //     if(snapshot.hasData) {
+            //       //todo Display Barcode here
+            //       return Text(snapshot.data);
+            //     } else if (snapshot.hasError) {
+            //       //todo display error picture
+            //       return null;
+            //     } else {
+            //       //todo return loading indicator
+            //       return CircularProgressIndicator();
+            //     }
+            //   },
+            // ),
+
+            //child: Text('Rec: $codeImage'),
+
+
+          ),
+
+        ],
+      ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         tooltip: 'Increment',
@@ -114,4 +189,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
+
 }
+
