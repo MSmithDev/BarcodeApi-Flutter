@@ -1,6 +1,12 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:barcode_scan/barcode_scan.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,7 +40,6 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-
   MyHomePage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -53,29 +58,29 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   Future<String> _getBarcode(String code) async {
     var response = await http.get('http://barcodeapi.org/api/A_Barcode');
     if (response.statusCode == 200) {
       // OK
       //print(response.body);
       return response.body;
-    }
-    else {
+    } else {
       throw Exception('failed to fetch');
     }
   }
 
+
 //Text controllers
   final inputController = TextEditingController();
 
-//
 
+  //
+  Uint8List debug;
   String codeImage = 'Try Me!';
-
+  String codeString = '';
   final Widget svgLogo = Container(
     height: 40,
-    alignment: Alignment.centerLeft,
+    alignment: Alignment.center,
     margin: EdgeInsets.all(0.0),
     child: SvgPicture.asset('res/barcodeapi-logo.svg'),
   );
@@ -109,73 +114,96 @@ class _MyHomePageState extends State<MyHomePage> {
         centerTitle: true,
         backgroundColor: Colors.white,
 
-        leading: Icon(
-          Icons.open_in_browser,
-          color: Colors.black,
-          size: 50.0,
-        ),
-        actions: [
-          Icon(
-            Icons.camera,
+        leading: IconButton(
+          icon: Icon(
+            Icons.open_in_browser,
             color: Colors.black,
             size: 50.0,
           ),
-
+          onPressed: () {
+            print('todo OPEN SITE');
+            _barcodeapiURL();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.camera,
+              color: Colors.black,
+              size: 50.0,
+            ),
+            onPressed: () async {
+              print('todo CAMERA');
+              var temp = await _LaunchCodeReader();
+              codeImage = temp.format + '/' + temp.rawContent;
+              codeString = temp.rawContent;
+              inputController.text = codeString;
+              setState(() {});
+            },
+          ),
         ],
-
       ),
       body: Column(
-
         children: [
-
           Center(
             child: TextField(
-              decoration: InputDecoration(
-
-                  hintText: 'Try Me!'
-              ),
+              decoration: InputDecoration(hintText: 'Try Me!'),
               textAlign: TextAlign.center,
               controller: inputController,
               onChanged: (String value) async {
                 print('Value: $value');
                 if (value != '') {
                   codeImage = value;
-                }
-                else {
-                  codeImage = 'Try Me!';
+                  var testGet = await http.readBytes(
+                      'https://barcodeapi.org/api/$codeImage');
+                  debug = testGet;
+                } else {
+                  debug =
+                  await http.readBytes('https://barcodeapi.org/api/Try Me!');
                 }
                 //codeImage = await _getBarcode(value);
-                setState(() {
-
-                });
+                setState(() {});
               },
             ),
           ),
-          Padding(padding: EdgeInsets.all(20),),
-          Center(
-
-            child: Image.network('http://barcodeapi.org/api/$codeImage'),
-            // child: FutureBuilder<String>(
-            //   future: _getBarcode(),
-            //   builder: (BuildContext context, AsyncSnapshot<String> snapshot){
-            //     if(snapshot.hasData) {
-            //       //todo Display Barcode here
-            //       return Text(snapshot.data);
-            //     } else if (snapshot.hasError) {
-            //       //todo display error picture
-            //       return null;
-            //     } else {
-            //       //todo return loading indicator
-            //       return CircularProgressIndicator();
-            //     }
-            //   },
-            // ),
-
-            //child: Text('Rec: $codeImage'),
-
-
+          Padding(
+            padding: EdgeInsets.all(20),
           ),
-
+          Center(
+            child: Builder(builder: (context) {
+              if (debug != null) {
+                return Image.memory(debug);
+              } else {
+                return Image.network('https://barcodeapi.org/api/Try Me!');
+              }
+            }),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.save,
+                  color: Colors.black,
+                  size: 50.0,
+                ),
+                onPressed: () {
+                  print('todo SAVE');
+                  _saveBarcode(debug);
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.share,
+                  color: Colors.black,
+                  size: 50.0,
+                ),
+                onPressed: () {
+                  print('todo SHARE');
+                },
+              ),
+            ],
+          ),
         ],
       ),
 
@@ -186,7 +214,51 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
-
-
 }
 
+_barcodeapiURL() async {
+  const url = 'https://barcodeapi.org/';
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
+_saveBarcode(Uint8List image) async {
+  Directory dir = await getExternalStorageDirectory();
+
+  print(dir.path);
+
+
+  final res = new File(dir.path + '/Pictures/barcodeapi.png')
+    ..writeAsBytesSync(image);
+//print(res);
+}
+
+Future<Barcode> _LaunchCodeReader() async {
+  var result = await BarcodeScanner.scan();
+  if (result.type.toString() == 'Cancelled') {
+    print('was cancled');
+  } else {
+    Barcode bcode = new Barcode(
+        result.type.toString(), result.format.toString(), result.rawContent);
+    print(result.type);
+    print(result.format);
+    print(result.rawContent);
+    print(result.formatNote);
+    return bcode;
+  }
+}
+
+class Barcode {
+  String type;
+  String format;
+  String rawContent;
+
+  Barcode(String type, String format, String rawContent) {
+    this.type = type;
+    this.format = format;
+    this.rawContent = rawContent;
+  }
+}
