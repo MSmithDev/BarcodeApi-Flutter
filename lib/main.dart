@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() {
@@ -57,6 +58,8 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+enum ShareMenu { image, text, contents }
+
 class _MyHomePageState extends State<MyHomePage> {
   Future<String> _getBarcode(String code) async {
     var response = await http.get('http://barcodeapi.org/api/A_Barcode');
@@ -69,10 +72,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-
 //Text controllers
   final inputController = TextEditingController();
-
 
   //
   Uint8List debug;
@@ -143,75 +144,111 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Center(
-            child: TextField(
-              decoration: InputDecoration(hintText: 'Try Me!'),
-              textAlign: TextAlign.center,
-              controller: inputController,
-              onChanged: (String value) async {
-                print('Value: $value');
-                if (value != '') {
-                  codeImage = value;
-                  var testGet = await http.readBytes(
-                      'https://barcodeapi.org/api/$codeImage');
-                  debug = testGet;
-                } else {
-                  debug =
-                  await http.readBytes('https://barcodeapi.org/api/Try Me!');
-                }
-                //codeImage = await _getBarcode(value);
-                setState(() {});
-              },
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(0, 0, 0, 50),
+        child: Column(
+          children: [
+            Center(
+              child: TextField(
+                decoration: InputDecoration(hintText: 'Try Me!'),
+                textAlign: TextAlign.center,
+                controller: inputController,
+                onChanged: (String value) async {
+                  print('Value: $value');
+                  if (value != '') {
+                    codeImage = value;
+                    var testGet = await http
+                        .readBytes('https://barcodeapi.org/api/$codeImage');
+                    debug = testGet;
+                  } else {
+                    debug = await http
+                        .readBytes('https://barcodeapi.org/api/Try Me!');
+                  }
+                  //codeImage = await _getBarcode(value);
+                  setState(() {});
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(20),
-          ),
-          Center(
-            child: Builder(builder: (context) {
-              if (debug != null) {
-                return Image.memory(debug);
-              } else {
-                return Image.network('https://barcodeapi.org/api/Try Me!');
-              }
-            }),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.save,
-                  color: Colors.black,
-                  size: 50.0,
-                ),
-                onPressed: () {
-                  print('todo SAVE');
-                  _saveBarcode(debug);
-                },
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.share,
-                  color: Colors.black,
-                  size: 50.0,
-                ),
-                onPressed: () {
-                  print('todo SHARE');
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+            Padding(
+              padding: EdgeInsets.all(20),
+            ),
+            Center(
+              child: Builder(builder: (context) {
+                if (debug != null) {
+                  return Image.memory(debug);
+                } else {
+                  return Image.network('https://barcodeapi.org/api/Try Me!');
+                }
+              }),
+            ),
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: Row(
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.save,
+                      color: Colors.black,
+                      size: 50.0,
+                    ),
+                    onPressed: () {
+                      print('todo SAVE');
+                      _saveBarcode(debug);
+                    },
+                  ),
+                  PopupMenuButton(
+                    icon: Icon(
+                      Icons.share,
+                      color: Colors.black,
+                      size: 50.0,
+                    ),
+
+                    onSelected:
+                        (selection) {
+                      switch (selection) {
+                        case ShareMenu.text:
+                          {
+                            print('share text');
+                            Share.share(
+                                "https://barcodeapi.org/api/${codeImage}");
+                            break;
+                          }
+                        case ShareMenu.contents:
+                          {
+                            print('share contents');
+                            Share.share("${codeImage}");
+                            break;
+                          }
+                        case ShareMenu.image:
+                          {
+                            print('share image');
+                          }
+                      }
+
+
+                      //Share.
+                    },
+
+                    itemBuilder: (BuildContext context) =>
+                    <PopupMenuEntry<ShareMenu>>[
+                      const PopupMenuItem<ShareMenu>(
+                        value: ShareMenu.image, child: Text('Image'),),
+                      const PopupMenuItem<ShareMenu>(
+                        value: ShareMenu.text, child: Text('Link'),),
+                      const PopupMenuItem<ShareMenu>(
+                        value: ShareMenu.contents, child: Text('Contents'),)
+                    ],
+
+
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -229,7 +266,6 @@ _saveBarcode(Uint8List image) async {
   Directory dir = await getExternalStorageDirectory();
 
   print(dir.path);
-
 
   final res = new File(dir.path + '/Pictures/barcodeapi.png')
     ..writeAsBytesSync(image);

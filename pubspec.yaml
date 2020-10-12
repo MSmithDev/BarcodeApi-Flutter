@@ -27,6 +27,8 @@ dependencies:
   barcode_scan: ^3.0.1
   image: ^2.1.18
   path_provider: ^1.6.18
+  share: ^0.6.5+2
+
   flutter:
     sdk: flutter
 
