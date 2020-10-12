@@ -15,7 +15,7 @@ void main() async {
   print('getting json string');
   var jstring = await http.read('https://barcodeapi.org/types');
   BarcodeApiTypes meta = new BarcodeApiTypes(jstring);
-  List types = meta.getTypes();
+  List<String> types = meta.getTypes();
 
   types.forEach((element) {
     print('$element');
@@ -26,7 +26,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  List codeTypeList;
+  List<String> codeTypeList;
 
   MyApp(List codeTypeList) {
     this.codeTypeList = codeTypeList;
@@ -70,7 +70,7 @@ class MyHomePage extends StatefulWidget {
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-  final List codeTypeList;
+  final List<String> codeTypeList;
   final String title;
 
   @override
@@ -80,9 +80,9 @@ class MyHomePage extends StatefulWidget {
 enum ShareMenu { image, text, contents }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List codeTypeList;
+  List<String> codeTypeList;
 
-  _MyHomePageState(List codeTypeList) {
+  _MyHomePageState(List<String> codeTypeList) {
     this.codeTypeList = codeTypeList;
   }
 
@@ -99,6 +99,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
 //Text controllers
   final inputController = TextEditingController();
+
+  String typeDropdownValue = 'Auto';
 
   //
   Uint8List debug;
@@ -173,6 +175,25 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: EdgeInsets.fromLTRB(0, 0, 0, 50),
         child: Column(
           children: [
+            Center(
+                child: DropdownButton<String>(
+                  value: typeDropdownValue,
+                  icon: Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  onChanged: (String newVal) {
+                    setState(() {
+                      typeDropdownValue = newVal;
+                    });
+                  },
+                  items: codeTypeList.map<DropdownMenuItem<String>>((
+                      String val) {
+                    return DropdownMenuItem<String>(
+                        value: val,
+                        child: Text(val)
+                    );
+                  }).toList(),
+                )
+            ),
             Center(
               child: TextField(
                 decoration: InputDecoration(hintText: 'Try Me!'),

@@ -30,9 +30,9 @@ class BarcodeApiTypes {
     this.json = jsonDecode(json);
   }
 
-  List getTypes() {
+  List<String> getTypes() {
     BarcodeMeta barcodeMeta;
-    List typelist = [];
+    List<String> typelist = ['Auto'];
     json.forEach((element) {
       barcodeMeta = BarcodeMeta.fromJson(element);
       typelist.add(barcodeMeta.type);
