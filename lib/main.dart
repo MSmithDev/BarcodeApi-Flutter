@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:barcode_scan/barcode_scan.dart';
+import 'package:barcodeapi_flutter/helpers/barcodeMeta.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
@@ -9,11 +10,28 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+//Todo check if api is working
+  print('getting json string');
+  var jstring = await http.read('https://barcodeapi.org/types');
+  BarcodeApiTypes meta = new BarcodeApiTypes(jstring);
+  List types = meta.getTypes();
+
+  types.forEach((element) {
+    print('$element');
+  });
+  //Grab List of supported
+
+  runApp(MyApp(types));
 }
 
 class MyApp extends StatelessWidget {
+  List codeTypeList;
+
+  MyApp(List codeTypeList) {
+    this.codeTypeList = codeTypeList;
+  }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -35,13 +53,14 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(
+          codeTypeList: codeTypeList, title: 'Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key key, this.title, this.codeTypeList}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -51,16 +70,22 @@ class MyHomePage extends StatefulWidget {
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-
+  final List codeTypeList;
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MyHomePageState createState() => _MyHomePageState(codeTypeList);
 }
 
 enum ShareMenu { image, text, contents }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List codeTypeList;
+
+  _MyHomePageState(List codeTypeList) {
+    this.codeTypeList = codeTypeList;
+  }
+
   Future<String> _getBarcode(String code) async {
     var response = await http.get('http://barcodeapi.org/api/A_Barcode');
     if (response.statusCode == 200) {
@@ -184,7 +209,6 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: EdgeInsets.all(10),
               child: Row(
-
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
@@ -204,15 +228,14 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: Colors.black,
                       size: 50.0,
                     ),
-
-                    onSelected:
-                        (selection) {
+                    onSelected: (selection) {
                       switch (selection) {
                         case ShareMenu.text:
                           {
                             print('share text');
                             Share.share(
                                 "https://barcodeapi.org/api/${codeImage}");
+
                             break;
                           }
                         case ShareMenu.contents:
@@ -227,21 +250,23 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                       }
 
-
                       //Share.
                     },
-
                     itemBuilder: (BuildContext context) =>
                     <PopupMenuEntry<ShareMenu>>[
                       const PopupMenuItem<ShareMenu>(
-                        value: ShareMenu.image, child: Text('Image'),),
+                        value: ShareMenu.image,
+                        child: Text('Image'),
+                      ),
                       const PopupMenuItem<ShareMenu>(
-                        value: ShareMenu.text, child: Text('Link'),),
+                        value: ShareMenu.text,
+                        child: Text('Link'),
+                      ),
                       const PopupMenuItem<ShareMenu>(
-                        value: ShareMenu.contents, child: Text('Contents'),)
+                        value: ShareMenu.contents,
+                        child: Text('Contents'),
+                      )
                     ],
-
-
                   ),
                 ],
               ),
